@@ -9,7 +9,7 @@
                               :type :COUCHBASE
                               :quota 100
                               :port 0
-                              :password ""
+                              :password "earthen_test"
                               :replicas 0
                               :index-replicas false
                               :flush? true})
@@ -32,6 +32,8 @@
 
 (defn init
   [f]
+  (c/authenticate cluster "earthen" "earthen")
   (c/remove-bucket! manager bucket-name)
   (c/insert-bucket! manager default-bucket-settings)
   (f))
+
