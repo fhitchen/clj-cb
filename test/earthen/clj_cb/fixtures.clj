@@ -1,4 +1,4 @@
-(ns clj-cb.fixtures
+(ns earthen.clj-cb.fixtures
   (:require [clojure.test :refer :all]
             [earthen.clj-cb.cluster :as c]
             [earthen.clj-cb.cluster]))
@@ -33,7 +33,9 @@
 (defn init
   [f]
   (c/authenticate cluster "earthen" "earthen")
-  (c/remove-bucket! manager bucket-name)
-  (c/insert-bucket! manager default-bucket-settings)
+  (c/remove-bucket! (manager) bucket-name)
+  (c/insert-bucket! (manager) default-bucket-settings)
   (f))
+
+(init +)
 

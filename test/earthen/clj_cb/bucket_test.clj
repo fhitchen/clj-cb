@@ -1,8 +1,8 @@
-(ns clj-cb.bucket-test
+(ns earthen.clj-cb.bucket-test
   (:require [clojure.test :refer :all]
             [earthen.clj-cb.bucket :as b]
             [earthen.clj-cb.utils :as u]
-            [clj-cb.fixtures :as fx]))
+            [earthen.clj-cb.fixtures :as fx]))
 
 (def book {:name "living-clojure"
            :year 2000
