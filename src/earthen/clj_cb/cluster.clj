@@ -15,7 +15,6 @@
 (defn authenticate
   "Login to cluster"
   [cluster username password]
-  (println (type cluster))
   (.authenticate cluster username password))
   
 

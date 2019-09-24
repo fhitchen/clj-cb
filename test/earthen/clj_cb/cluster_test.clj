@@ -19,5 +19,5 @@
 
 (deftest disconnect
   (testing "disconnect"
-    (is (= true (c/disconnect fx/cluster)))))
+    (is (= true (c/disconnect @fx/cluster)))))
 
