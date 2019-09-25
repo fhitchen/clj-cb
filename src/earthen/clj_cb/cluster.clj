@@ -22,12 +22,8 @@
   "Open a bucket from a the cluster"
   ([cluster bucket-name]
    (open-bucket cluster bucket-name 20 :SECONDS))
-  ([cluster bucket-name password]
-   (open-bucket cluster bucket-name password 20 :SECONDS))
   ([cluster bucket-name time time-type]
-   (.openBucket cluster bucket-name time (u/time time-type)))
-  ([cluster bucket-name password time time-type]
-   (.openBucket cluster bucket-name password time (u/time time-type))))
+   (.openBucket cluster bucket-name time (u/time time-type))))
 
 (defn manager
   "Returns a cluster manager giving a cluster and credentials"
