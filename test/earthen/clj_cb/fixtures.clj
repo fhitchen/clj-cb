@@ -11,7 +11,7 @@
                               :type :COUCHBASE
                               :quota 100
                               :port 0
-                              :password "earthen_test"
+                              :password ""
                               :replicas 0
                               :index-replicas false
                               :flush? true})
