@@ -3,7 +3,6 @@
             [earthen.clj-cb.cluster :as c]
             [earthen.clj-cb.cluster]))
 
-;(def cluster (c/create))
 (def cluster (atom nil))
 
 (def bucket-name "earthen_test")
