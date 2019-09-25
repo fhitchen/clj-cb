@@ -22,7 +22,7 @@
 
 (defn manager
   []
-  (c/manager @cluster {:username "Administrator" :password "unix11"}))
+  (c/manager @cluster {:username "Administrator" :password "Admin123"}))
 
 ;; (defn init-bucket
 ;;   [f]
