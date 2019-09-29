@@ -57,7 +57,7 @@ A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0
        ;; true or false for a given path. This has not been implemented. Instead you will get a
        ;; {:keyword nil} response for a noneixstent path.
 	  
-       (b/lookup-in (fx/bucket) "Aaron1" "name" "sponsors" "tues[1]" "injuries")
+       (b/lookup-in bucket "Aaron1" "name" "sponsors" "tues[1]" "injuries")
 
        => {:name "Aaron1", :sponsors ["Nike" "Reebok" "Freddies"], :tues<1> {:symptom {:pain "Asprin"}}, :injuries nil}
 
