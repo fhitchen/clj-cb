@@ -69,8 +69,6 @@
                                     (read-json (.toString (.content result idx)))
                                     (.content result idx))}) rest))))
 
-(keyword (clojure.string/replace "references[1].item.label" #"\[|\]" {"[" "<" "]" ">"}))
-
 (defn get-and-lock
   "Retrieves and locks the document for n seconds"
   [bucket id seconds]
