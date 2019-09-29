@@ -56,6 +56,21 @@
             .toString)
          (document->map doc))))))
 
+(defn lookup-in
+  "Retrieves sub-document values"
+  [bucket id & rest]
+  (let [builder (.lookupIn bucket id)
+        _ (.get builder (into-array rest))
+        result (.execute builder)]
+    (apply merge-with into {} (map-indexed
+                               (fn [idx itm]
+                                 {(keyword (clojure.string/replace itm #"\[|\]" {"[" "<" "]" ">"}))
+                                  (if (contains? (supers (class (.content result idx))) com.couchbase.client.java.document.json.JsonValue)
+                                    (read-json (.toString (.content result idx)))
+                                    (.content result idx))}) rest))))
+
+(keyword (clojure.string/replace "references[1].item.label" #"\[|\]" {"[" "<" "]" ">"}))
+
 (defn get-and-lock
   "Retrieves and locks the document for n seconds"
   [bucket id seconds]
