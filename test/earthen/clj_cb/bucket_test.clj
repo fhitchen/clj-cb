@@ -16,6 +16,7 @@
                   :references [{:item "ref-item-0"}
                                {:item {:label 99}}]})
 
+
 (use-fixtures :each fx/init)
 
 (deftest crud
@@ -48,3 +49,4 @@
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"]} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers")))
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"] :references<1>.item.label 99} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers" "references[1].item.label")))
         (is (= {:exists nil} (b/lookup-in (fx/bucket) (:name bigger-book) "exists")))))
+

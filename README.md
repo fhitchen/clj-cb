@@ -22,6 +22,7 @@ A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0
     ;; no longer works and you will get the exception MixedAuthenticationException...
     ;; ...Mixed mode authentication not allowed, use Bucket credentials, User credentials (rbac) or Certificate auth
 
+
     (c/authenticate "gamesim-sample" "secret")
     
     ;; we get documents from bucket mapped
