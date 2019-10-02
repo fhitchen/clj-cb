@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [get replace remove])
   (:import [com.couchbase.client.java Bucket]
            [com.couchbase.client.java.document JsonDocument]
-           [com.couchbase.client.java.document.json JsonObject])
+           [com.couchbase.client.java.document.json JsonObject]
+           [com.couchbase.client.java.error DocumentDoesNotExistException])
   (:require [clojure.data.json :as json]
             [earthen.clj-cb.utils :as u]))
 
@@ -59,15 +60,21 @@
 (defn lookup-in
   "Retrieves sub-document values"
   [bucket id & rest]
-  (let [builder (.lookupIn bucket id)
-        _ (.get builder (into-array rest))
-        result (.execute builder)]
-    (apply merge-with into {} (map-indexed
-                               (fn [idx itm]
-                                 {(keyword (clojure.string/replace itm #"\[|\]" {"[" "<" "]" ">"}))
-                                  (if (contains? (supers (class (.content result idx))) com.couchbase.client.java.document.json.JsonValue)
-                                    (read-json (.toString (.content result idx)))
-                                    (.content result idx))}) rest))))
+  (try
+    (let [builder (.lookupIn bucket id)
+          _ (.get builder (into-array rest))
+          result (.execute builder)]
+      (apply merge-with into {}
+             (map-indexed
+              (fn [idx itm]
+                {(keyword (clojure.string/replace itm #"\[|\]" {"[" "<" "]" ">"}))
+                 (if (contains? (supers (class (.content result idx))) com.couchbase.client.java.document.json.JsonValue)
+                   (read-json (.toString (.content result idx)))
+                   (.content result idx))}) rest)))
+    (catch DocumentDoesNotExistException ex
+      {})))
+
+(keyword (clojure.string/replace "references[1].item.label" #"\[|\]" {"[" "<" "]" ">"}))
 
 (defn get-and-lock
   "Retrieves and locks the document for n seconds"
