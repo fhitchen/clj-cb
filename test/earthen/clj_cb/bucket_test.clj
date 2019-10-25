@@ -50,3 +50,13 @@
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"] :references<1>.item.label 99} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers" "references[1].item.label")))
         (is (= {:exists nil} (b/lookup-in (fx/bucket) (:name bigger-book) "exists")))))
 
+(deftest query
+  (fx/authenticate "earthen" "earthen")
+  (let [item (b/replace! (fx/bucket) (:name bigger-book) bigger-book)
+        _ (b/replace! (fx/bucket) (str (:name bigger-book) "-0") bigger-book)
+        _ (b/replace! (fx/bucket) (str (:name bigger-book) "-1") bigger-book)]
+    (is (= bigger-book (:content item)) "insert/replace")
+    (.createN1qlPrimaryIndex (b/manager (fx/bucket)) true false)
+    (is (= bigger-book (b/query (fx/bucket) "SELECT meta().id, editions FROM `earthen_test`")))))
+    
+  

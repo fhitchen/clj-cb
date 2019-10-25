@@ -3,7 +3,9 @@
   (:import [com.couchbase.client.java Bucket]
            [com.couchbase.client.java.document JsonDocument]
            [com.couchbase.client.java.document.json JsonObject]
-           [com.couchbase.client.java.error DocumentDoesNotExistException])
+           [com.couchbase.client.java.error DocumentDoesNotExistException]
+           [com.couchbase.client.java.query SimpleN1qlQuery Select]
+           [com.couchbase.client.java.query.dsl Expression])
   (:require [clojure.data.json :as json]
             [earthen.clj-cb.utils :as u]))
 
@@ -130,4 +132,15 @@
   ([bucket] (close bucket 30 :SECONDS))
   ([bucket time type]
    (.close bucket time (u/time type))))
+
+(defn query
+  "Execut N1ql query."
+  [bucket query-string]
+
+  (let [result (.query bucket (SimpleN1qlQuery/simple query-string))]
+    (if (= "success" (.status result)) (println "SUCCESS!!!"))
+    (into [] (map #(read-json (.toString % )) (iterator-seq (.rows result))))))
+
+
+
 
