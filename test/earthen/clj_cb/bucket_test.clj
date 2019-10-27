@@ -8,7 +8,7 @@
            :year 2000
            :pages 12})
 
-(def bigger-book {:name "biger-living-clojure"
+(def bigger-book {:name "bigger-living-clojure"
                   :year 2000
                   :pages 12
                   :editions {:2000 "1" :2001 "2"}
@@ -52,11 +52,44 @@
 
 (deftest query
   (fx/authenticate "earthen" "earthen")
-  (let [item (b/replace! (fx/bucket) (:name bigger-book) bigger-book)
-        _ (b/replace! (fx/bucket) (str (:name bigger-book) "-0") bigger-book)
-        _ (b/replace! (fx/bucket) (str (:name bigger-book) "-1") bigger-book)]
-    (is (= bigger-book (:content item)) "insert/replace")
-    (.createN1qlPrimaryIndex (b/manager (fx/bucket)) true false)
-    (is (= bigger-book (b/query (fx/bucket) "SELECT meta().id, editions FROM `earthen_test`")))))
-    
-  
+  (b/create-primary-index (fx/bucket))
+  (dorun
+   (map #(b/replace!
+          (fx/bucket)
+          (str (:name bigger-book) "-" %)
+          (assoc bigger-book :name (str (:name bigger-book) "-" %)))
+        (range 10)))
+  (Thread/sleep 1000)
+  (is (= 10 (count (:rows (b/query (fx/bucket) "SELECT meta().id, editions FROM `earthen_test`")))))
+  (is (= 0 (count (:rows (b/query (fx/bucket) "SELECT * FROM `earthen_test` where name = \"not found\"")))))
+  (is (= 1 (count (:rows (b/query (fx/bucket) "SELECT * FROM `earthen_test` where name = \"bigger-living-clojure-9\"")))))
+  (let [result 
+        (b/query (fx/bucket) "SELECT meta().id FROM `earthen_test` where name = \"bigger-living-clojure-7\"")]
+    (is (= "success" (:status result)))
+    (is (= 1 (count (:rows result))))
+    (is (= "bigger-living-clojure-7" (:id (first (:rows result))))))
+  (let [result 
+        (b/query (fx/bucket) "SELECT meta().id FROM `earthen_test` LIMIT 3")]
+    (is (= "success" (:status result)))
+    (is (= 3 (count (:rows result))))
+    (is (= "bigger-living-clojure-0" (:id (first (:rows result)))))
+    (is (= "bigger-living-clojure-1" (:id (second (:rows result)))))
+    (is (= "bigger-living-clojure-2" (:id (nth (:rows result) 2)))))
+  (let [result 
+        (b/query (fx/bucket) "SELECT meta().id FROM `earthen_test` OFFSET 3 LIMIT 3")]
+    (is (= "success" (:status result)))
+    (is (= 3 (count (:rows result))))
+    (is (= "bigger-living-clojure-3" (:id (first (:rows result)))))
+    (is (= "bigger-living-clojure-4" (:id (second (:rows result)))))
+    (is (= "bigger-living-clojure-5" (:id (nth (:rows result) 2)))))
+  (let [result 
+        (b/query (fx/bucket) "SELECT meta().id FROM `earthen_test` OFFSET 9 LIMIT 1")]
+    (is (= "success" (:status result)))
+    (is (= 1 (count (:rows result))))
+    (is (= "bigger-living-clojure-9" (:id (first (:rows result)))))
+    )
+  (let [result 
+        (b/query (fx/bucket) "SELECT meta().id FROM `earthen_test` OFFSET 10 LIMIT 1")]
+    (is (= "success" (:status result)))
+    (is (= 0 (count (:rows result))))
+    (is (= 0 (.resultCount (:n1ql-metrics result))))))

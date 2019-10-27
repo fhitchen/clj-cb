@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/data.json "0.2.6"]
                  [com.couchbase.client/java-client "2.7.9"]]
+  :profiles {:dev {:dependencies [[ch.qos.logback/logback-classic "1.1.2"]]}}
   :plugins [[lein-codox "0.9.4"]])

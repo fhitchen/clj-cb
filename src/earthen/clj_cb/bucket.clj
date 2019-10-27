@@ -80,8 +80,6 @@
     (catch DocumentDoesNotExistException ex
       {})))
 
-(keyword (clojure.string/replace "references[1].item.label" #"\[|\]" {"[" "<" "]" ">"}))
-
 (defn get-and-lock
   "Retrieves and locks the document for n seconds"
   [bucket id seconds]
@@ -133,14 +131,44 @@
   ([bucket time type]
    (.close bucket time (u/time type))))
 
+(defn create-primary-index
+  "Create a primary index for bucket."
+  [bucket]
+  (.createN1qlPrimaryIndex (manager bucket) true false))
+
+(defn query-rows->map
+  "Convert JSON Iterator to a vector of maps."
+  [result]
+  (if (= "success" (.status result))
+    (into [] (map #(read-json (.toString %)) (iterator-seq (.rows result))))
+    []))
+
+(defn simple-query->map
+  "Converts a DefaultN1qlQueryResult to a map"
+  [result]
+  {:all-rows (.allRows result) 
+   :context-id (.clientContextId result) 
+   :errors(.errors result) 
+   :final-success (.finalSuccess result)
+   :n1ql-metrics (.info result) 
+   :iterator (.iterator result) 
+   :parse-success (.parseSuccess result) 
+   :profile-info (.profileInfo result) 
+   :requestid (.requestId result) 
+   :rows (query-rows->map result) 
+   :signature (.signature result) 
+   :status (.status result)})
+
 (defn query
+  "Execute simple N1ql query."
+  [bucket query-string]
+  (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string))))
+
+(defn query-old
   "Execut N1ql query."
   [bucket query-string]
-
-  (let [result (.query bucket (SimpleN1qlQuery/simple query-string))]
-    (if (= "success" (.status result)) (println "SUCCESS!!!"))
-    (into [] (map #(read-json (.toString % )) (iterator-seq (.rows result))))))
-
-
-
-
+  (let [result (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string)))]
+    (prn result)
+    (if (= "success" (:status result))
+      (into [] (map #(read-json (.toString % )) (iterator-seq (:rows result))))
+      [])))
