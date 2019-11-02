@@ -48,7 +48,10 @@
     (is (= {:editions.2000 "1" :pages 12} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2000" "pages")))
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"]} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers")))
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"] :references<1>.item.label 99} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers" "references[1].item.label")))
-        (is (= {:exists nil} (b/lookup-in (fx/bucket) (:name bigger-book) "exists")))))
+    (is (= {:exists nil} (b/lookup-in (fx/bucket) (:name bigger-book) "exists")))
+    (is (thrown-with-msg? com.couchbase.client.java.error.subdoc.PathMismatchException
+                              #"Path mismatch \"year.missing\" in bigger-living-clojure"
+                              (b/lookup-in (fx/bucket) (:name bigger-book) "year.missing")))))
 
 (deftest query
   (fx/authenticate "earthen" "earthen")
