@@ -164,36 +164,48 @@
   [bucket query-string]
   (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string))))
 
+(defn ^Expression expression
+  [{:keys [and eq gt le]}]
+  ()
+  (when and
+    )
+  (when eq
+    (println "eq" eq)
+    (.eq (Expression/x (first eq)) (Expression/x (second eq)))))
+    
+
 (defn statement
   "Prepare statement"
   [{:keys [select from where]}]
   (when (nil? select)
     (throw (ex-info "select missing" {})))
 
-  (-> (Select/select (into-array select))
-      (.from (Expression/i (into-array [from])))
-      ;(println ,,, "blah")
-      (as-> ,,, path
-          (when where
-            (println path)
-            (doseq [clause where]
-              (println "cl" clause)
-              (when (keyword? clause)
-                    (println "kw" clause))
-              (let [{:keys [gt le]} clause]
-                    
-                    (when gt
-                      (println "gt" gt))
-                    (when le
-                      (println "le" le)))
+  (let [stmt (Select/select (into-array select))
+        path (.from stmt (Expression/i (into-array [from])))]
+    ;(println ,,, "blah")
+    (when where
+      (println path)
+      (doseq [clause where]
+        (let [{:keys [eq gt le]} clause]
+          (when eq
+            (.where path (expression {:eq eq})))
+          (when gt
+            (println "gt" gt))
+          (when le
+            (println "le" le)))
               
-              )))
+        ))
 
-  ))
+  path))
 
-(class (statement {:select ["foo" "bar"] :from "foo" :where [{:gt ["99" "foo"]}
-                                                             :and
-                                                             {:le [100 "foo"]}]}))
+
+(.and (.eq (Expression/x "z") (Expression/x "$x"))  (.eq (Expression/x "a") (Expression/x "$a"))) 
+(first ["x" "y"])
+
+(prn (statement {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
+                                                             {:and {:eq ["year" "$year"]}}
+                                                             ;{:le [100 "foo"]}
+                                                             ]}))
 
 (defn query-old
   "Execut N1ql query."
