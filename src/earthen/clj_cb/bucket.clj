@@ -169,25 +169,31 @@
   [{:keys [select from where]}]
   (when (nil? select)
     (throw (ex-info "select missing" {})))
-  (println select)
+
   (-> (Select/select (into-array select))
       (.from (Expression/i (into-array [from])))
-
-      (when where
-        (println "Clause: " where)
-                                        ;(.where )
-        (doseq [
-        )
+      ;(println ,,, "blah")
+      (as-> ,,, path
+          (when where
+            (println path)
+            (doseq [clause where]
+              (println "cl" clause)
+              (when (keyword? clause)
+                    (println "kw" clause))
+              (let [{:keys [gt le]} clause]
+                    
+                    (when gt
+                      (println "gt" gt))
+                    (when le
+                      (println "le" le)))
+              
+              )))
 
   ))
 
-(Select/select (into-array ["foo" "bar"]))
-
-(Expression/s (into-array ["foo"]))
-
-(statement {:select ["foo" "bar"] :from "foo" :where [{:gt ["baz" "$baz"]}
-                                                      :and 
-                                                      {:le ["x" "$x"]}]})
+(class (statement {:select ["foo" "bar"] :from "foo" :where [{:gt ["99" "foo"]}
+                                                             :and
+                                                             {:le [100 "foo"]}]}))
 
 (defn query-old
   "Execut N1ql query."
