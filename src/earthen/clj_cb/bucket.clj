@@ -164,11 +164,36 @@
   [bucket query-string]
   (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string))))
 
+(defn statement
+  "Prepare statement"
+  [{:keys [select from where]}]
+  (when (nil? select)
+    (throw (ex-info "select missing" {})))
+  (println select)
+  (-> (Select/select (into-array select))
+      (.from (Expression/i (into-array [from])))
+
+      (when where
+        (println "Clause: " where)
+                                        ;(.where )
+        (doseq [
+        )
+
+  ))
+
+(Select/select (into-array ["foo" "bar"]))
+
+(Expression/s (into-array ["foo"]))
+
+(statement {:select ["foo" "bar"] :from "foo" :where [{:gt ["baz" "$baz"]}
+                                                      :and 
+                                                      {:le ["x" "$x"]}]})
+
 (defn query-old
   "Execut N1ql query."
   [bucket query-string]
   (let [result (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string)))]
     (prn result)
-    (if (= "success" (:status result))
+    (if (= "success" (:status result)
       (into [] (map #(read-json (.toString % )) (iterator-seq (:rows result))))
       [])))
