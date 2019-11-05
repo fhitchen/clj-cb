@@ -165,13 +165,13 @@
   (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string))))
 
 (defn ^Expression expression
-  [{:keys [and eq gt le]}]
-  ()
-  (when and
-    (.and (Expression/x "X")))
-  (when eq
-    (println "eq" eq)
-    (.eq (Expression/x (first eq)) (Expression/x (second eq)))))
+  [{:keys [eq gt le ne]}]
+  (cond
+    (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
+    (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
+    (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
+    (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
+    :else "Missing Condition"))
     
 
 (defn statement
@@ -184,17 +184,23 @@
         path (.from stmt (Expression/i (into-array [from])))]
     ;(println ,,, "blah")
     (when where
-      (println path)
-      (doseq [clause where]
-        (let [{:keys [eq gt le]} clause]
-          (when eq
-            (.where path (expression {:eq eq})))
-          (when gt
-            (println "gt" gt))
-          (when le
-            (println "le" le)))
+      (println "Process" where)
+
+      (let [expr (expression (first where))]
+        (println "First expression is: " expr)
+        (.where path expr)
+        
+        (doseq [{:keys [and or]} (rest where)]
+          (when and
+            (prn "AND" and)
+            (-> expr
+                (.and (expression and)))
+            (prn "AND expr" expr))
+          (when or
+            (-> expr
+                (.or (expression or)))))
               
-        ))
+        (println "expr" expr)))
 
   path))
 
@@ -212,12 +218,40 @@
 (first ["x" "y"])
 (def q {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
                                                   {:and {:eq ["year" "$year"]}}
-                                        ;{:le [100 "foo"]}
-                                                  ]})
+                                                  {:or {:ne ["one" "$one"]}}]
+        :limit 10})
+(def e (expression (first (:where q))))
+(expression (first (:where q)))
+(prn e)
+(loop [var (:where q)]
+  (prn "var" var)
+  (let [{:keys [and eq limit] :as all} (first var)]
+    (if (nil? all)
+      "squeek"
+      (do
+        (when and
+          (prn "and" and))
+        (when eq
+          (prn "eq" eq))
+        (when limit
+          (prn "limit" limit))
+        (recur (next var))))))
+
+(next (:where q))
+
+
+(doseq [{:keys [and eq] :as all} (:where q)]
+  (prn "all" all)
+  (when and
+    (prn "and" and))
+  (when eq
+    (prn "eq" eq)))
+
 (prn (statement q))
 
-(prn (expression (first (:where q))))
-(:where q)
+(prn (expression {:eq ["one" "$one"]}))
+(keys (last (:where q)))
+
 (defn query-old
   "Execut N1ql query."
   [bucket query-string]
