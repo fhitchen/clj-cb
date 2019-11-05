@@ -168,7 +168,7 @@
   [{:keys [and eq gt le]}]
   ()
   (when and
-    )
+    (.and (Expression/x "X")))
   (when eq
     (println "eq" eq)
     (.eq (Expression/x (first eq)) (Expression/x (second eq)))))
@@ -199,14 +199,25 @@
   path))
 
 
-(.and (.eq (Expression/x "z") (Expression/x "$x"))  (.eq (Expression/x "a") (Expression/x "$a"))) 
+(.and (.eq (Expression/x "z") (Expression/x "$x"))  (.eq (Expression/x "a") (Expression/x "$a")))
+
+(def one (.eq (Expression/x "z") (Expression/x "$x")))
+(def two (.eq (Expression/x "a") (Expression/x "$a")))
+
+(.and two one)
+(-> one
+    (.and (expression {:eq ["year" "$year"]})))
+
+(.and (.eq (Expression/x "z") (Expression/x "$x")))
 (first ["x" "y"])
+(def q {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
+                                                  {:and {:eq ["year" "$year"]}}
+                                        ;{:le [100 "foo"]}
+                                                  ]})
+(prn (statement q))
 
-(prn (statement {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
-                                                             {:and {:eq ["year" "$year"]}}
-                                                             ;{:le [100 "foo"]}
-                                                             ]}))
-
+(prn (expression (first (:where q))))
+(:where q)
 (defn query-old
   "Execut N1ql query."
   [bucket query-string]
