@@ -165,49 +165,64 @@
   (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string))))
 
 (defn ^Expression expression
-  [{:keys [eq gt le ne]}]
-  (cond
-    (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
-    (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
-    (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
-    (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
-    :else "Missing Condition"))
-    
+  ([exp-1]
+   (expression exp-1 nil))
+  ([{:keys [and eq gt le ne or]} ^Expression exp-2]
+   (cond
+     (some? and) (.and exp-2 (expression and))
+     (some? or) (.or exp-2 (expression or))
+     (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
+     (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
+     (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
+     (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
+     :else "Missing Condition")))
 
+(defn process-where-clause
+  [where]
+  (loop [var where
+         exp nil]
+    (prn "var" var)
+    (prn "exp" exp)
+    (if (nil? var)
+      exp
+      (let [expr (expression (first var) exp)]
+        (recur (next var) expr)))))
+(def ^:dynamic path)
+(def ^:dynamic stmt)
 (defn statement
   "Prepare statement"
-  [{:keys [select from where]}]
+  [{:keys [select from where limit offset]}]
   (when (nil? select)
     (throw (ex-info "select missing" {})))
 
-  (let [stmt (Select/select (into-array select))
-        path (.from stmt (Expression/i (into-array [from])))]
+  (binding [stmt (Select/select (into-array select))
+            path (.from stmt (Expression/i (into-array [from])))]
     ;(println ,,, "blah")
     (when where
-      (println "Process" where)
+      (println "Process where" where)
+      (set! path (.where path (process-where-clause where)))
+      (println "PPP" path))
 
-      (let [expr (expression (first where))]
-        (println "First expression is: " expr)
-        (.where path expr)
-        
-        (doseq [{:keys [and or]} (rest where)]
-          (when and
-            (prn "AND" and)
-            (-> expr
-                (.and (expression and)))
-            (prn "AND expr" expr))
-          (when or
-            (-> expr
-                (.or (expression or)))))
-              
-        (println "expr" expr)))
+    (when limit
+      (prn "Process limit" limit)
+      (.limit path limit))
 
-  path))
+    (when offset
+      (prn "Process offset" offset)
+      (.offset stmt offset))
+
+    stmt))
 
 
 (.and (.eq (Expression/x "z") (Expression/x "$x"))  (.eq (Expression/x "a") (Expression/x "$a")))
 
+(def ^:dynamic path)
 (def one (.eq (Expression/x "z") (Expression/x "$x")))
+(binding [path nil]
+  (set! path "foo")
+  (println path))
+
+
 (def two (.eq (Expression/x "a") (Expression/x "$a")))
 
 (.and two one)
@@ -219,44 +234,20 @@
 (def q {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
                                                   {:and {:eq ["year" "$year"]}}
                                                   {:or {:ne ["one" "$one"]}}]
-        :limit 10})
+        :xlimit 10
+        :xoffset 10})
+
+(prn (statement q))
 (def e (expression (first (:where q))))
 (expression (first (:where q)))
 (prn e)
-(loop [var (:where q)]
-  (prn "var" var)
-  (let [{:keys [and eq limit] :as all} (first var)]
-    (if (nil? all)
-      "squeek"
-      (do
-        (when and
-          (prn "and" and))
-        (when eq
-          (prn "eq" eq))
-        (when limit
-          (prn "limit" limit))
-        (recur (next var))))))
 
-(next (:where q))
+(defn handle-and-or [e {:keys [and or]}]
+  (prn "andor" and or)
+  (cond
+    (some? and) (.and e (expression and))
+    (some? or) (.or e (expression or))))
 
 
-(doseq [{:keys [and eq] :as all} (:where q)]
-  (prn "all" all)
-  (when and
-    (prn "and" and))
-  (when eq
-    (prn "eq" eq)))
+(process-where-clause (:where q))
 
-(prn (statement q))
-
-(prn (expression {:eq ["one" "$one"]}))
-(keys (last (:where q)))
-
-(defn query-old
-  "Execut N1ql query."
-  [bucket query-string]
-  (let [result (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string)))]
-    (prn result)
-    (if (= "success" (:status result)
-      (into [] (map #(read-json (.toString % )) (iterator-seq (:rows result))))
-      [])))
