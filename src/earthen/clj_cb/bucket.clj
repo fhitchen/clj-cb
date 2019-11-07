@@ -1,3 +1,4 @@
+
 (ns earthen.clj-cb.bucket
   (:refer-clojure :exclude [get replace remove])
   (:import [com.couchbase.client.java Bucket]
@@ -187,31 +188,30 @@
       exp
       (let [expr (expression (first var) exp)]
         (recur (next var) expr)))))
-(def ^:dynamic path)
-(def ^:dynamic stmt)
+
 (defn statement
   "Prepare statement"
   [{:keys [select from where limit offset]}]
   (when (nil? select)
     (throw (ex-info "select missing" {})))
-
-  (binding [stmt (Select/select (into-array select))
-            path (.from stmt (Expression/i (into-array [from])))]
+  (prn (Select/select (into-array select)))
+  (with-local-vars [stmt (Select/select (into-array select))
+                    path (.from @stmt (Expression/i (into-array [from])))]
     ;(println ,,, "blah")
     (when where
       (println "Process where" where)
-      (set! path (.where path (process-where-clause where)))
-      (println "PPP" path))
+      (var-set path (.where @path (process-where-clause where)))
+      (println "PPP" @path))
 
     (when limit
       (prn "Process limit" limit)
-      (.limit path limit))
+      (var-set path (.limit @path limit)))
 
     (when offset
       (prn "Process offset" offset)
-      (.offset stmt offset))
+      (var-set path (.offset @path offset)))
 
-    stmt))
+    path))
 
 
 (.and (.eq (Expression/x "z") (Expression/x "$x"))  (.eq (Expression/x "a") (Expression/x "$a")))
@@ -250,4 +250,5 @@
 
 
 (process-where-clause (:where q))
+
 
