@@ -96,3 +96,20 @@
     (is (= "success" (:status result)))
     (is (= 0 (count (:rows result))))
     (is (= 0 (.resultCount (:n1ql-metrics result))))))
+
+(deftest prepared-statement
+  (is (= "SELECT foo FROM `bucket`" (.toString (b/statement {:select ["foo"]
+                           :from "bucket"}))))
+  (is (= "SELECT foo FROM `bucket` WHERE foo = $val"
+         (.toString (b/statement {:select ["foo"]
+                                  :from "bucket"
+                                  :where [{:eq ["foo" "$val"]}]}))))
+  (is (= "SELECT foo FROM `bucket` WHERE foo = $val1 OR foo != $val2"
+         (.toString (b/statement {:select ["foo"]
+                                  :from "bucket"
+                                  :where [{:eq ["foo" "$val1"]}
+                                          {:or {:ne ["foo" "$val2"]}}]}))))
+  (is (= "SELECT foo FROM `bucket`" (.toString (b/statement {:select ["foo"]
+                           :from "bucket"}))))
+
+  )

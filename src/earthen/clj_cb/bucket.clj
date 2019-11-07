@@ -168,7 +168,8 @@
 (defn ^Expression expression
   ([exp-1]
    (expression exp-1 nil))
-  ([{:keys [and eq gt le ne or]} ^Expression exp-2]
+  ([{:keys [and eq gt le ne or] :as all} ^Expression exp-2]
+   (prn "ALL" all)
    (cond
      (some? and) (.and exp-2 (expression and))
      (some? or) (.or exp-2 (expression or))
@@ -182,73 +183,63 @@
   [where]
   (loop [var where
          exp nil]
-    (prn "var" var)
+    (prn "var" var "first var" (first var))
     (prn "exp" exp)
-    (if (nil? var)
+    (if (= '() var)
       exp
       (let [expr (expression (first var) exp)]
-        (recur (next var) expr)))))
+        (prn "expr" expr)
+        (recur (rest var) expr)))))
 
 (defn statement
   "Prepare statement"
   [{:keys [select from where limit offset]}]
   (when (nil? select)
     (throw (ex-info "select missing" {})))
-  (prn (Select/select (into-array select)))
-  (with-local-vars [stmt (Select/select (into-array select))
-                    path (.from @stmt (Expression/i (into-array [from])))]
+
+  (let [stmt (atom (Select/select (into-array select)))
+        path (atom (.from @stmt (Expression/i (into-array [from]))))]
     ;(println ,,, "blah")
     (when where
       (println "Process where" where)
-      (var-set path (.where @path (process-where-clause where)))
+      (reset! path (.where @path (process-where-clause where)))
       (println "PPP" @path))
 
     (when limit
       (prn "Process limit" limit)
-      (var-set path (.limit @path limit)))
+      (reset! path (.limit @path limit)))
 
     (when offset
       (prn "Process offset" offset)
-      (var-set path (.offset @path offset)))
-
-    path))
-
-
-(.and (.eq (Expression/x "z") (Expression/x "$x"))  (.eq (Expression/x "a") (Expression/x "$a")))
-
-(def ^:dynamic path)
-(def one (.eq (Expression/x "z") (Expression/x "$x")))
-(binding [path nil]
-  (set! path "foo")
-  (println path))
+      (reset! path (.offset @path offset)))
+    @path))
 
 
-(def two (.eq (Expression/x "a") (Expression/x "$a")))
 
-(.and two one)
-(-> one
-    (.and (expression {:eq ["year" "$year"]})))
-
-(.and (.eq (Expression/x "z") (Expression/x "$x")))
-(first ["x" "y"])
 (def q {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
                                                   {:and {:eq ["year" "$year"]}}
                                                   {:or {:ne ["one" "$one"]}}]
-        :xlimit 10
-        :xoffset 10})
+        :limit 10
+        :offset 10})
 
-(prn (statement q))
-(def e (expression (first (:where q))))
-(expression (first (:where q)))
-(prn e)
+(loop [var (:where q)]
+  (prn var)
+  (if (= '() var)
+    "give up"
+    (do
+      (prn (first var))
+      (recur (rest var)))))
 
-(defn handle-and-or [e {:keys [and or]}]
-  (prn "andor" and or)
-  (cond
-    (some? and) (.and e (expression and))
-    (some? or) (.or e (expression or))))
+(rest (:where q))
+(some? '())
 
 
-(process-where-clause (:where q))
+
+
+
+
+
+
+
 
 
