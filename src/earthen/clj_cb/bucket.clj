@@ -5,7 +5,7 @@
            [com.couchbase.client.java.document JsonDocument]
            [com.couchbase.client.java.document.json JsonObject]
            [com.couchbase.client.java.error DocumentDoesNotExistException]
-           [com.couchbase.client.java.query SimpleN1qlQuery Select]
+           [com.couchbase.client.java.query SimpleN1qlQuery Select N1qlQuery N1qlParams Statement]
            [com.couchbase.client.java.query.dsl Expression])
   (:require [clojure.data.json :as json]
             [earthen.clj-cb.utils :as u]))
@@ -132,6 +132,58 @@
   ([bucket time type]
    (.close bucket time (u/time type))))
 
+(defn ^Expression expression
+  ([exp-1]
+   (expression exp-1 nil))
+  ([{:keys [and eq gt le ne or] :as all} ^Expression exp-2]
+   (prn "ALL" all)
+   (cond
+     (some? and) (.and exp-2 (expression and))
+     (some? or) (.or exp-2 (expression or))
+     (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
+     (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
+     (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
+     (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
+     :else "Missing Condition")))
+
+(defn process-where-clause
+  [where]
+  (loop [var where
+         exp nil]
+    (prn "var" var "first var" (first var))
+    (prn "exp" exp)
+    (if (= '() var)
+      exp
+      (let [expr (expression (first var) exp)]
+        (prn "expr" expr)
+        (recur (rest var) expr)))))
+
+(defn statement
+  "Build a Couchbase Statement from a Clojure map. Leave String or Statement instances untouched."
+  [input]
+  (if (or (instance? String input) (instance? Statement input))
+    input
+  (let [{:keys [select from where limit offset]} input] 
+    (when (nil? select)
+      (throw (ex-info "select missing" input)))
+
+    (let [stmt (atom (Select/select (into-array select)))
+          path (atom (.from @stmt (Expression/i (into-array [from]))))]
+                                        ;(println ,,, "blah")
+      (when where
+        (println "Process where" where)
+        (reset! path (.where @path (process-where-clause where)))
+        (println "PPP" @path))
+
+      (when limit
+        (prn "Process limit" limit)
+        (reset! path (.limit @path limit)))
+
+      (when offset
+        (prn "Process offset" offset)
+        (reset! path (.offset @path offset)))
+      @path))))
+
 (defn create-primary-index
   "Create a primary index for bucket."
   [bucket]
@@ -162,79 +214,21 @@
 
 (defn query
   "Execute simple N1ql query."
-  [bucket query-string]
-  (simple-query->map (.query bucket (SimpleN1qlQuery/simple query-string))))
-
-(defn ^Expression expression
-  ([exp-1]
-   (expression exp-1 nil))
-  ([{:keys [and eq gt le ne or] :as all} ^Expression exp-2]
-   (prn "ALL" all)
-   (cond
-     (some? and) (.and exp-2 (expression and))
-     (some? or) (.or exp-2 (expression or))
-     (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
-     (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
-     (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
-     (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
-     :else "Missing Condition")))
-
-(defn process-where-clause
-  [where]
-  (loop [var where
-         exp nil]
-    (prn "var" var "first var" (first var))
-    (prn "exp" exp)
-    (if (= '() var)
-      exp
-      (let [expr (expression (first var) exp)]
-        (prn "expr" expr)
-        (recur (rest var) expr)))))
-
-(defn statement
-  "Prepare statement"
-  [{:keys [select from where limit offset]}]
-  (when (nil? select)
-    (throw (ex-info "select missing" {})))
-
-  (let [stmt (atom (Select/select (into-array select)))
-        path (atom (.from @stmt (Expression/i (into-array [from]))))]
-    ;(println ,,, "blah")
-    (when where
-      (println "Process where" where)
-      (reset! path (.where @path (process-where-clause where)))
-      (println "PPP" @path))
-
-    (when limit
-      (prn "Process limit" limit)
-      (reset! path (.limit @path limit)))
-
-    (when offset
-      (prn "Process offset" offset)
-      (reset! path (.offset @path offset)))
-    @path))
-
-
-
-(def q {:select ["foo" "bar"] :from "foo" :where [{:eq ["title" "$title"]}
-                                                  {:and {:eq ["year" "$year"]}}
-                                                  {:or {:ne ["one" "$one"]}}]
-        :limit 10
-        :offset 10})
-
-(loop [var (:where q)]
-  (prn var)
-  (if (= '() var)
-    "give up"
-    (do
-      (prn (first var))
-      (recur (rest var)))))
-
-(rest (:where q))
-(some? '())
-
-
-
+  ([bucket stmt]
+   (query bucket stmt nil))
+  ([bucket stmt n1ql-params]
+   (simple-query->map (.query bucket (SimpleN1qlQuery/simple
+                                      (statement stmt)
+                                      (when n1ql-params
+                                        n1ql-params))))))
+(defn p-query
+  "Execute parameterized N1ql query. "
+  [bucket query-map p]
+  (prn (type query-map))
+  (simple-query->map (.query bucket (N1qlQuery/parameterized (statement query-map)
+                                                             (JsonObject/from p)
+                                        ;(.adhoc (N1qlParams/build) false)
+                                                             ))))
 
 
 

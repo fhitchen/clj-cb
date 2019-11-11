@@ -109,7 +109,28 @@
                                   :from "bucket"
                                   :where [{:eq ["foo" "$val1"]}
                                           {:or {:ne ["foo" "$val2"]}}]}))))
-  (is (= "SELECT foo FROM `bucket`" (.toString (b/statement {:select ["foo"]
-                           :from "bucket"}))))
+  (is (= "SELECT foo FROM `bucket` WHERE foo = $val1 OR foo != $val2 LIMIT 10 OFFSET 10"
+         (.toString (b/statement {:select ["foo"]
+                                  :from "bucket"
+                                  :where [{:eq ["foo" "$val1"]}
+                                          {:or {:ne ["foo" "$val2"]}}]
+                                  :limit 10
+                                  :offset 10})))))
 
-  )
+(deftest p-query
+  (fx/authenticate "earthen" "earthen")
+  (b/create-primary-index (fx/bucket))
+  (let [item (b/replace! (fx/bucket) (:name bigger-book) bigger-book)]
+    (Thread/sleep 1000)
+    (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
+                                                 :from "earthen_test"
+                                                 :limit 1})))))
+    (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
+                                                 :from "earthen_test"
+                                                 :limit 1}
+                                    (b/not-ad-hoc))))))
+    (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["pages"]
+                                                   :from "earthen_test"
+                                                   :where [{:eq ["name" "$title"]}]}
+                                      {"title" "bigger-living-clojure"})))))))
+
