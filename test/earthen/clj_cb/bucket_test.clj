@@ -134,3 +134,6 @@
                                                    :where [{:eq ["name" "$title"]}]}
                                       {"title" "bigger-living-clojure"})))))))
 
+"SELECT meta().id, productIds from `%s` USE INDEX (`#primary`)
+                   WHERE meta().id LIKE 'ICustomerIndexDTO_%%' 
+                   AND meta().id > '%s' ORDER BY meta().id LIMIT %d"

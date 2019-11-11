@@ -1,4 +1,3 @@
-
 (ns earthen.clj-cb.bucket
   (:refer-clojure :exclude [get replace remove])
   (:import [com.couchbase.client.java Bucket]
@@ -135,7 +134,7 @@
 (defn ^Expression expression
   ([exp-1]
    (expression exp-1 nil))
-  ([{:keys [and eq gt le ne or] :as all} ^Expression exp-2]
+  ([{:keys [and eq gt le like ne or] :as all} ^Expression exp-2]
    (prn "ALL" all)
    (cond
      (some? and) (.and exp-2 (expression and))
@@ -143,6 +142,7 @@
      (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
      (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
      (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
+     (some? like) (.like (Expression/x (first like)) (Expression/x (second like)))
      (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
      :else "Missing Condition")))
 
@@ -211,6 +211,10 @@
    :rows (query-rows->map result) 
    :signature (.signature result) 
    :status (.status result)})
+
+(defn not-ad-hoc
+  []
+  (.adhoc (N1qlParams/build) false))
 
 (defn query
   "Execute simple N1ql query."
