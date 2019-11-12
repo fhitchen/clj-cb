@@ -185,10 +185,10 @@
 
       (when order-by
         (prn "Process order-by" order-by)
-        (reset! path (.orderBy @path (into-array (Sort/def (Expression/x order-by))))))
-      @path))))
+        (reset! path (.orderBy @path (into-array [(Sort/def (Expression/x order-by))]))))
 
-(Sort/def "xxx")
+      (prn "XXX:" @path)
+      @path))))
 
 (defn create-primary-index
   "Create a primary index for bucket."
