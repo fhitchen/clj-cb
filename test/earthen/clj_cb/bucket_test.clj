@@ -121,7 +121,13 @@
   (fx/authenticate "earthen" "earthen")
   (b/create-primary-index (fx/bucket))
   (let [item (b/replace! (fx/bucket) (:name bigger-book) bigger-book)]
-    (Thread/sleep 1000)
+    (dorun
+     (map #(b/replace!
+            (fx/bucket)
+            (str (:name bigger-book) "-" %)
+            (assoc bigger-book :name (str (:name bigger-book) "-" %)))
+          (range 10)))
+    (Thread/sleep 2000)
     (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
                                                  :from "earthen_test"
                                                  :limit 1})))))
@@ -132,8 +138,27 @@
     (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["pages"]
                                                    :from "earthen_test"
                                                    :where [{:eq ["name" "$title"]}]}
-                                      {"title" "bigger-living-clojure"})))))))
+                                      {"title" "bigger-living-clojure"})))))
+    (is (= 11 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
+                                                   :from "earthen_test"
+                                                   :where [{:like ["meta().id" ["bigger-%"]]}]}
+                                      {"id" "bigger-living-clojure-0"})))))
+    (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
+                                                   :from "earthen_test"
+                                                   :where [{:like ["meta().id" ["bigger-%"]]}
+                                                           {:and {:gt ["meta().id" "$id"]}}]}
+                                      {"id" "bigger-living-clojure-8"})))))
+    (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
+                                                   :from "earthen_test"
+                                                   :where [{:like ["meta().id" ["bigger-%"]]}
+                                                           {:and {:gt ["meta().id" "$id"]}}]
+                                                   :order-by "meta().id"}
+                                      {"id" "bigger-living-clojure-8"})))))))
 
-"SELECT meta().id, productIds from `%s` USE INDEX (`#primary`)
-                   WHERE meta().id LIKE 'ICustomerIndexDTO_%%' 
-                   AND meta().id > '%s' ORDER BY meta().id LIMIT %d"
+;"SELECT meta().id, productIds from `%s` USE INDEX (`#primary`)
+;                   WHERE meta().id LIKE 'ICustomerIndexDTO_%%' 
+;                   AND meta().id > '%s' ORDER BY meta().id LIMIT %d"
+
+(prn (.toString (into-array ["foo" "bar"])))
+
+(into-array (second ["meta().id" ["bigger-%"]]))

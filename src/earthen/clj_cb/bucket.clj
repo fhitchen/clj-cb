@@ -5,7 +5,7 @@
            [com.couchbase.client.java.document.json JsonObject]
            [com.couchbase.client.java.error DocumentDoesNotExistException]
            [com.couchbase.client.java.query SimpleN1qlQuery Select N1qlQuery N1qlParams Statement]
-           [com.couchbase.client.java.query.dsl Expression])
+           [com.couchbase.client.java.query.dsl Expression Sort])
   (:require [clojure.data.json :as json]
             [earthen.clj-cb.utils :as u]))
 
@@ -142,7 +142,7 @@
      (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
      (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
      (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
-     (some? like) (.like (Expression/x (first like)) (Expression/x (second like)))
+     (some? like) (.like (Expression/x (first like)) (Expression/s (into-array (second like))))
      (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
      :else "Missing Condition")))
 
@@ -163,7 +163,7 @@
   [input]
   (if (or (instance? String input) (instance? Statement input))
     input
-  (let [{:keys [select from where limit offset]} input] 
+  (let [{:keys [select from where limit offset order-by]} input] 
     (when (nil? select)
       (throw (ex-info "select missing" input)))
 
@@ -182,7 +182,13 @@
       (when offset
         (prn "Process offset" offset)
         (reset! path (.offset @path offset)))
+
+      (when order-by
+        (prn "Process order-by" order-by)
+        (reset! path (.orderBy @path (into-array (Sort/def (Expression/x order-by))))))
       @path))))
+
+(Sort/def "xxx")
 
 (defn create-primary-index
   "Create a primary index for bucket."
