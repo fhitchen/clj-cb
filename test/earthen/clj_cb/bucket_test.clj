@@ -49,9 +49,7 @@
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"]} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers")))
     (is (= {:editions.2001 "2" :publishers ["foo" "bar"] :references<1>.item.label 99} (b/lookup-in (fx/bucket) (:name bigger-book) "editions.2001" "publishers" "references[1].item.label")))
     (is (= {:exists nil} (b/lookup-in (fx/bucket) (:name bigger-book) "exists")))
-    (is (thrown-with-msg? com.couchbase.client.java.error.subdoc.PathMismatchException
-                              #"Path mismatch \"year.missing\" in bigger-living-clojure"
-                              (b/lookup-in (fx/bucket) (:name bigger-book) "year.missing")))))
+    (is (= {:exception "Path mismatch \"year.missing\" in bigger-living-clojure"} (b/lookup-in (fx/bucket) (:name bigger-book) "year.missing")))))
 
 (deftest query
   (fx/authenticate "earthen" "earthen")
@@ -134,7 +132,7 @@
     (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
                                                  :from "earthen_test"
                                                  :limit 1}
-                                    (b/not-ad-hoc))))))
+                                    (b/ad-hoc))))))
     (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["pages"]
                                                    :from "earthen_test"
                                                    :where [{:eq ["name" "$title"]}]}
@@ -148,12 +146,20 @@
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]}
                                       {"id" "bigger-living-clojure-8"})))))
-    (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
+    (is (= 2 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
                                                    :from "earthen_test"
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]
                                                    :order-by "meta().id"}
-                                      {"id" "bigger-living-clojure-8"})))))))
+                                      {"id" "bigger-living-clojure-7"})))))
+    (is (= 2 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
+                                                   :from "earthen_test"
+                                                   :use-index ["#primary"]
+                                                   :where [{:like ["meta().id" ["bigger-%"]]}
+                                                           {:and {:gt ["meta().id" "$id"]}}]
+                                                   :order-by "meta().id"
+                                                   :limit 2}
+                                      {"id" "bigger-living-clojure-7"})))))))
 
 ;"SELECT meta().id, productIds from `%s` USE INDEX (`#primary`)
 ;                   WHERE meta().id LIKE 'ICustomerIndexDTO_%%' 

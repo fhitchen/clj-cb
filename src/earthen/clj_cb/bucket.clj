@@ -4,6 +4,7 @@
            [com.couchbase.client.java.document JsonDocument]
            [com.couchbase.client.java.document.json JsonObject]
            [com.couchbase.client.java.error DocumentDoesNotExistException]
+           [com.couchbase.client.java.error.subdoc PathMismatchException]
            [com.couchbase.client.java.query SimpleN1qlQuery Select N1qlQuery N1qlParams Statement]
            [com.couchbase.client.java.query.dsl Expression Sort])
   (:require [clojure.data.json :as json]
@@ -78,7 +79,9 @@
                    (read-json (.toString (.content result index)))
                    (.content result index))}) rest)))
     (catch DocumentDoesNotExistException ex
-      {})))
+      {})
+    (catch PathMismatchException ex
+      {:exception (.getMessage ex)})))
 
 (defn get-and-lock
   "Retrieves and locks the document for n seconds"
@@ -163,17 +166,25 @@
   [input]
   (if (or (instance? String input) (instance? Statement input))
     input
-  (let [{:keys [select from where limit offset order-by]} input] 
+  (let [{:keys [select from where limit offset order-by use-index]} input] 
     (when (nil? select)
       (throw (ex-info "select missing" input)))
 
     (let [stmt (atom (Select/select (into-array select)))
           path (atom (.from @stmt (Expression/i (into-array [from]))))]
                                         ;(println ,,, "blah")
+
+      (when use-index
+        (println "Process use-index" use-index)
+        (reset! path (.useIndex @path (into-array use-index))))
       (when where
         (println "Process where" where)
         (reset! path (.where @path (process-where-clause where)))
         (println "PPP" @path))
+
+      (when order-by
+        (prn "Process order-by" order-by)
+        (reset! path (.orderBy @path (into-array [(Sort/def (Expression/x order-by))]))))
 
       (when limit
         (prn "Process limit" limit)
@@ -182,10 +193,6 @@
       (when offset
         (prn "Process offset" offset)
         (reset! path (.offset @path offset)))
-
-      (when order-by
-        (prn "Process order-by" order-by)
-        (reset! path (.orderBy @path (into-array [(Sort/def (Expression/x order-by))]))))
 
       (prn "XXX:" @path)
       @path))))
@@ -218,9 +225,9 @@
    :signature (.signature result) 
    :status (.status result)})
 
-(defn not-ad-hoc
+(defn ad-hoc
   []
-  (.adhoc (N1qlParams/build) false))
+  (.adhoc (N1qlParams/build) true))
 
 (defn query
   "Execute simple N1ql query."
@@ -233,12 +240,13 @@
                                         n1ql-params))))))
 (defn p-query
   "Execute parameterized N1ql query. "
-  [bucket query-map p]
-  (prn (type query-map))
-  (simple-query->map (.query bucket (N1qlQuery/parameterized (statement query-map)
-                                                             (JsonObject/from p)
-                                        ;(.adhoc (N1qlParams/build) false)
-                                                             ))))
+  ([bucket query-map p]
+   (p-query bucket query-map p nil))
+  ([bucket query-map p mode]
+   (simple-query->map (.query bucket (N1qlQuery/parameterized (statement query-map)
+                                                              (JsonObject/from p)
+                                                              (when (nil? mode)
+                                                                (.adhoc (N1qlParams/build) false)))))))
 
 
 
