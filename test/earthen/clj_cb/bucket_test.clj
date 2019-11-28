@@ -113,7 +113,36 @@
                                   :where [{:eq ["foo" "$val1"]}
                                           {:or {:ne ["foo" "$val2"]}}]
                                   :limit 10
-                                  :offset 10})))))
+                                  :offset 10}))))
+  (is (= "SELECT foo FROM `bucket` WHERE foo = $val1 OR foo != $val2 AND `bar` IS NULL LIMIT 10 OFFSET 10"
+         (.toString (b/statement {:select ["foo"]
+                                  :from "bucket"
+                                  :where [{:eq ["foo" "$val1"]}
+                                          {:or {:ne ["foo" "$val2"]}}
+                                          {:and {:is-null ["bar"]}}]
+                                  :limit 10
+                                  :offset 10}))))
+  (is (= "SELECT foo FROM `bucket` WHERE foo >= $val1 AND foo < 10 AND bar <= 200 LIMIT 10 OFFSET 10"
+         (.toString (b/statement {:select ["foo"]
+                                  :from "bucket"
+                                  :where [{:gte ["foo" "$val1"]}
+                                          {:and {:lt ["foo" 10]}}
+                                          {:and {:lte ["bar" 200]}}]
+                                  :limit 10
+                                  :offset 10}))))
+  (is (= "SELECT foo FROM `bucket` WHERE `foo` IS NOT NULL OR `bar[0].status` IS NULL"
+         (.toString (b/statement {:select ["foo"]
+                                  :from "bucket"
+                                  :where [{:is-not-null ["foo"]}
+                                          {:or {:is-null ["bar[0].status"]}}]}))))
+  (is (= "SELECT ALL foo FROM `bucket`"
+         (.toString (b/statement {:select-all ["foo"]
+                                  :from "bucket"}))))
+  (is (= "SELECT DISTINCT foo FROM `bucket` GROUP BY foo, bar ORDER BY meta().id ASC"
+         (.toString (b/statement {:select-distinct ["foo"]
+                                  :from "bucket"
+                                  :group-by ["foo" "bar"]
+                                  :order-by {:asc "meta().id"}})))))
 
 (deftest p-query
   (fx/authenticate "earthen" "earthen")
@@ -150,14 +179,14 @@
                                                    :from "earthen_test"
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]
-                                                   :order-by "meta().id"}
+                                                   :order-by {:asc "meta().id"}}
                                       {"id" "bigger-living-clojure-7"})))))
     (is (= 2 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
                                                    :from "earthen_test"
                                                    :use-index ["#primary"]
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]
-                                                   :order-by "meta().id"
+                                                   :order-by {:desc "meta().id"}
                                                    :limit 2}
                                       {"id" "bigger-living-clojure-7"})))))))
 

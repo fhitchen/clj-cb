@@ -134,17 +134,37 @@
   ([bucket time type]
    (.close bucket time (u/time type))))
 
+(defmulti expression (fn ([x & xs] 
+                      (mapv class (into [x] xs)))))
+(defmethod ^Expression expression [java.lang.String]
+  [x]
+  (Expression/i x))
+(defmethod ^Expression expression [java.lang.Long]
+  [x]
+  (Expression/s x))
+(defmethod ^Expression expression [clojure.lang.PersistentArrayMap]
+  [x]
+  "A map!")
+
 (defn ^Expression expression
   ([exp-1]
    (expression exp-1 nil))
-  ([{:keys [and eq gt le like ne or] :as all} ^Expression exp-2]
-   (prn "ALL" all)
+  ([{:keys [as asc and desc eq gt gte is-null is-not-null le lt lte like ne or] :as all} ^Expression exp-2]
+         (println all)
    (cond
+     (some? as) (.as (Expression/i (into-array [(second as)])) (Expression/x (first as)))
+     (some? asc) (Sort/asc (Expression/x asc))
+     (some? desc) (Sort/desc (Expression/x desc))
      (some? and) (.and exp-2 (expression and))
      (some? or) (.or exp-2 (expression or))
      (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
      (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
+     (some? gte) (.gte (Expression/x (first gte)) (Expression/x (second gte)))
+     (some? is-null) (.isNull (Expression/i (into-array is-null)))
+     (some? is-not-null) (.isNotNull (Expression/i (into-array is-not-null)))
      (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
+     (some? lt) (.lt (Expression/x (first lt)) (Expression/x (second lt)))
+     (some? lte) (.lte (Expression/x (first lte)) (Expression/x (second lte)))
      (some? like) (.like (Expression/x (first like)) (Expression/s (into-array (second like))))
      (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
      :else "Missing Condition")))
@@ -153,49 +173,61 @@
   [where]
   (loop [var where
          exp nil]
-    (prn "var" var "first var" (first var))
-    (prn "exp" exp)
     (if (= '() var)
       exp
       (let [expr (expression (first var) exp)]
-        (prn "expr" expr)
         (recur (rest var) expr)))))
+
+(declare clause)
+(declare process-clause)
 
 (defn statement
   "Build a Couchbase Statement from a Clojure map. Leave String or Statement instances untouched."
   [input]
   (if (or (instance? String input) (instance? Statement input))
     input
-  (let [{:keys [select from where limit offset order-by use-index]} input] 
-    (when (nil? select)
-      (throw (ex-info "select missing" input)))
+    (let [{:keys [pselect select select-all select-distinct from where limit offset group-by order-by use-index]} input] 
+      (when (and (nil? pselect) (nil? select) (nil? select-all) (nil? select-distinct))
+        (throw (ex-info "select missing" input)))
 
-    (let [stmt (atom (Select/select (into-array select)))
-          path (atom (.from @stmt (Expression/i (into-array [from]))))]
-                                        ;(println ,,, "blah")
+      (let [path (atom nil)]
 
-      (when use-index
-        (println "Process use-index" use-index)
-        (reset! path (.useIndex @path (into-array use-index))))
-      (when where
-        (println "Process where" where)
-        (reset! path (.where @path (process-where-clause where)))
-        (println "PPP" @path))
+        (when pselect
+          (prn (type pselect))
+          (reset! path (Select/select (clause pselect))))
 
-      (when order-by
-        (prn "Process order-by" order-by)
-        (reset! path (.orderBy @path (into-array [(Sort/def (Expression/x order-by))]))))
+        (when select
+          (prn (type select))
+          (reset! path (Select/select (into-array select))))
 
-      (when limit
-        (prn "Process limit" limit)
-        (reset! path (.limit @path limit)))
+        (when select-all
+          (reset! path (Select/selectAll (into-array select-all))))
 
-      (when offset
-        (prn "Process offset" offset)
-        (reset! path (.offset @path offset)))
+        (when select-distinct
+          (reset! path (Select/selectDistinct (into-array select-distinct))))
 
-      (prn "XXX:" @path)
-      @path))))
+        (when from
+          (reset! path (.from @path (Expression/i (into-array [from])))))
+      
+        (when use-index
+          (reset! path (.useIndex @path (into-array use-index))))
+      
+        (when where
+          (reset! path (.where @path (process-where-clause where))))
+
+        (when group-by
+          (reset! path (.groupBy @path (into-array group-by))))
+
+        (when order-by
+          (reset! path (.orderBy @path (into-array [(expression order-by)]))))
+
+        (when limit
+          (reset! path (.limit @path limit)))
+
+        (when offset
+          (reset! path (.offset @path offset)))
+      
+        @path))))
 
 (defn create-primary-index
   "Create a primary index for bucket."
@@ -248,9 +280,45 @@
                                                               (when (nil? mode)
                                                                 (.adhoc (N1qlParams/build) false)))))))
 
+(defn process-clause
+  [where]
+  (loop [var where
+         exp nil]
+    (if (= '() var)
+      exp
+      (let [expr (expression (first var) exp)]
+        (recur (rest var) expr)))))
 
+                                        ;(defmulti clause (fn [x & others] (class x)))
+(defmulti clause (fn ([x & xs] 
+                      (mapv class (into [x] xs)))))
+(defmethod clause [java.lang.String]
+  [x]
+  "A string!")
+(defmethod clause [java.lang.Long]
+  [x]
+  "A long!")
+(defmethod clause [clojure.lang.PersistentArrayMap Expression]
+  [x y]
+  (str "A map and an expression!" x " and " y))
+(defmethod clause [clojure.lang.PersistentArrayMap]
+  [x]
+  "A map!")
+(defmethod clause [clojure.lang.PersistentVector]
+  [x]
+  (process-clause x))
 
+(class [])
+(def test {:select ["a" "A" "b" "B" "C"]})
+(clause 1)
+(clause test)
+(clause test (Expression/i (into-array ["foo"])))
+(clause (:select test))
 
+(process-clause ["x" {:as ["C" "d"] "e" "f"}])
+
+;(statement {:pselect ["foo" {:as ["bar" "b"]}]})
+(Expression/i (into-array ["a" "b"]))
 
 
 
