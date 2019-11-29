@@ -134,23 +134,29 @@
   ([bucket time type]
    (.close bucket time (u/time type))))
 
-(defmulti expression (fn ([x & xs] 
-                      (mapv class (into [x] xs)))))
-(defmethod ^Expression expression [java.lang.String]
-  [x]
-  (Expression/i x))
-(defmethod ^Expression expression [java.lang.Long]
-  [x]
-  (Expression/s x))
-(defmethod ^Expression expression [clojure.lang.PersistentArrayMap]
-  [x]
-  "A map!")
+(declare expression)
+
+(defmulti expr (fn ([x & xs] 
+                    (mapv class (into [x] xs)))))
+(defmethod expr [String]
+  [e]
+  (Expression/x e))
+(defmethod expr [clojure.lang.PersistentArrayMap]
+  [e]
+  (expression e))
+
+(defn map-clause
+  [v]
+  (into-array
+   (mapv (fn [e]
+           (prn e)
+           (expr e)) v)))
 
 (defn ^Expression expression
   ([exp-1]
    (expression exp-1 nil))
-  ([{:keys [as asc and desc eq gt gte is-null is-not-null le lt lte like ne or] :as all} ^Expression exp-2]
-         (println all)
+  ([{:keys [as asc and desc eq gt gte i is-null is-not-null le lt lte like ne or] :as all} ^Expression exp-2]
+         (println "Expresion got: " all)
    (cond
      (some? as) (.as (Expression/i (into-array [(second as)])) (Expression/x (first as)))
      (some? asc) (Sort/asc (Expression/x asc))
@@ -160,6 +166,7 @@
      (some? eq) (.eq (Expression/x (first eq)) (Expression/x (second eq)))
      (some? gt) (.gt (Expression/x (first gt)) (Expression/x (second gt)))
      (some? gte) (.gte (Expression/x (first gte)) (Expression/x (second gte)))
+     (some? i) (Expression/i (into-array [i]))
      (some? is-null) (.isNull (Expression/i (into-array is-null)))
      (some? is-not-null) (.isNotNull (Expression/i (into-array is-not-null)))
      (some? le) (.le (Expression/x (first le)) (Expression/x (second le)))
@@ -178,9 +185,6 @@
       (let [expr (expression (first var) exp)]
         (recur (rest var) expr)))))
 
-(declare clause)
-(declare process-clause)
-
 (defn statement
   "Build a Couchbase Statement from a Clojure map. Leave String or Statement instances untouched."
   [input]
@@ -194,7 +198,7 @@
 
         (when pselect
           (prn (type pselect))
-          (reset! path (Select/select (clause pselect))))
+          (reset! path (Select/select (map-clause pselect))))
 
         (when select
           (prn (type select))
@@ -280,46 +284,6 @@
                                                               (when (nil? mode)
                                                                 (.adhoc (N1qlParams/build) false)))))))
 
-(defn process-clause
-  [where]
-  (loop [var where
-         exp nil]
-    (if (= '() var)
-      exp
-      (let [expr (expression (first var) exp)]
-        (recur (rest var) expr)))))
-
-                                        ;(defmulti clause (fn [x & others] (class x)))
-(defmulti clause (fn ([x & xs] 
-                      (mapv class (into [x] xs)))))
-(defmethod clause [java.lang.String]
-  [x]
-  "A string!")
-(defmethod clause [java.lang.Long]
-  [x]
-  "A long!")
-(defmethod clause [clojure.lang.PersistentArrayMap Expression]
-  [x y]
-  (str "A map and an expression!" x " and " y))
-(defmethod clause [clojure.lang.PersistentArrayMap]
-  [x]
-  "A map!")
-(defmethod clause [clojure.lang.PersistentVector]
-  [x]
-  (process-clause x))
-
-(class [])
-(def test {:select ["a" "A" "b" "B" "C"]})
-(clause 1)
-(clause test)
-(clause test (Expression/i (into-array ["foo"])))
-(clause (:select test))
-
-(process-clause ["x" {:as ["C" "d"] "e" "f"}])
-
-;(statement {:pselect ["foo" {:as ["bar" "b"]}]})
-(Expression/i (into-array ["a" "b"]))
-
-
+;(Select/select (map-clause [{:i "x"} "y" {:as ["foo" "z"]} {:i "P"}]))
 
 
