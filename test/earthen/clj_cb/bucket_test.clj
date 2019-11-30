@@ -96,51 +96,52 @@
     (is (= 0 (.resultCount (:n1ql-metrics result))))))
 
 (deftest prepared-statement
-  (is (= "SELECT foo FROM `bucket`" (.toString (b/statement {:select ["foo"]
-                           :from "bucket"}))))
+  (is (= "SELECT foo FROM `bucket`"
+         (.toString (b/statement {:select ["foo"]
+                                  :from [{:i "bucket"}]}))))
   (is (= "SELECT foo FROM `bucket` WHERE foo = $val"
          (.toString (b/statement {:select ["foo"]
-                                  :from "bucket"
+                                  :from [{:i "bucket"}]
                                   :where [{:eq ["foo" "$val"]}]}))))
-  (is (= "SELECT foo FROM `bucket` WHERE foo = $val1 OR foo != $val2"
+  (is (= "SELECT foo FROM bucket WHERE foo = $val1 OR foo != $val2"
          (.toString (b/statement {:select ["foo"]
-                                  :from "bucket"
+                                  :from ["bucket"]
                                   :where [{:eq ["foo" "$val1"]}
                                           {:or {:ne ["foo" "$val2"]}}]}))))
   (is (= "SELECT foo FROM `bucket` WHERE foo = $val1 OR foo != $val2 LIMIT 10 OFFSET 10"
          (.toString (b/statement {:select ["foo"]
-                                  :from "bucket"
+                                  :from [{:i "bucket"}]
                                   :where [{:eq ["foo" "$val1"]}
                                           {:or {:ne ["foo" "$val2"]}}]
                                   :limit 10
                                   :offset 10}))))
   (is (= "SELECT foo FROM `bucket` WHERE foo = $val1 OR foo != $val2 AND `bar` IS NULL LIMIT 10 OFFSET 10"
          (.toString (b/statement {:select ["foo"]
-                                  :from "bucket"
+                                  :from [{:i "bucket"}]
                                   :where [{:eq ["foo" "$val1"]}
                                           {:or {:ne ["foo" "$val2"]}}
                                           {:and {:is-null ["bar"]}}]
                                   :limit 10
                                   :offset 10}))))
-  (is (= "SELECT foo FROM `bucket` WHERE foo >= $val1 AND foo < 10 AND bar <= 200 LIMIT 10 OFFSET 10"
-         (.toString (b/statement {:select ["foo"]
-                                  :from "bucket"
+  (is (= "SELECT `x` AS foo FROM `bucket` WHERE foo >= $val1 AND foo < 10 AND bar <= 200 LIMIT 10 OFFSET 10"
+         (.toString (b/statement {:select [{:as ["foo" "x"]}]
+                                  :from [{:i "bucket"}]
                                   :where [{:gte ["foo" "$val1"]}
                                           {:and {:lt ["foo" 10]}}
                                           {:and {:lte ["bar" 200]}}]
                                   :limit 10
                                   :offset 10}))))
-  (is (= "SELECT foo FROM `bucket` WHERE `foo` IS NOT NULL OR `bar[0].status` IS NULL"
-         (.toString (b/statement {:select ["foo"]
-                                  :from "bucket"
+  (is (= "SELECT x, y, `z` AS foo FROM `bucket` WHERE `foo` IS NOT NULL OR `bar[0].status` IS NULL"
+         (.toString (b/statement {:select ["x" "y" {:as ["foo" "z"]}]
+                                  :from [{:i "bucket"}]
                                   :where [{:is-not-null ["foo"]}
                                           {:or {:is-null ["bar[0].status"]}}]}))))
-  (is (= "SELECT ALL foo FROM `bucket`"
+  (is (= "SELECT ALL foo FROM `another-bucket` AS bucket"
          (.toString (b/statement {:select-all ["foo"]
-                                  :from "bucket"}))))
+                                  :from [{:as ["bucket" "another-bucket"]}]}))))
   (is (= "SELECT DISTINCT foo FROM `bucket` GROUP BY foo, bar ORDER BY meta().id ASC"
          (.toString (b/statement {:select-distinct ["foo"]
-                                  :from "bucket"
+                                  :from [{:i "bucket"}]
                                   :group-by ["foo" "bar"]
                                   :order-by {:asc "meta().id"}})))))
 

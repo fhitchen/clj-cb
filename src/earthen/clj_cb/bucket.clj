@@ -141,9 +141,18 @@
 (defmethod expr [String]
   [e]
   (Expression/x e))
+(defmethod expr [java.lang.String nil]
+  [e _]
+  (Expression/x e))
 (defmethod expr [clojure.lang.PersistentArrayMap]
   [e]
   (expression e))
+(defmethod expr [clojure.lang.PersistentArrayMap nil]
+  [e _]
+  (expression e nil))
+(defmethod expr [clojure.lang.PersistentArrayMap com.couchbase.client.java.query.dsl.Expression]
+  [e1 e2]
+  (expression e1 e2))
 
 (defn map-clause
   [v]
@@ -182,7 +191,7 @@
          exp nil]
     (if (= '() var)
       exp
-      (let [expr (expression (first var) exp)]
+      (let [expr (expr (first var) exp)]
         (recur (rest var) expr)))))
 
 (defn statement
@@ -190,28 +199,24 @@
   [input]
   (if (or (instance? String input) (instance? Statement input))
     input
-    (let [{:keys [pselect select select-all select-distinct from where limit offset group-by order-by use-index]} input] 
-      (when (and (nil? pselect) (nil? select) (nil? select-all) (nil? select-distinct))
+    (let [{:keys [select select-all select-distinct from where limit offset group-by order-by use-index]} input] 
+      (when (and (nil? select) (nil? select-all) (nil? select-distinct))
         (throw (ex-info "select missing" input)))
 
       (let [path (atom nil)]
 
-        (when pselect
-          (prn (type pselect))
-          (reset! path (Select/select (map-clause pselect))))
-
         (when select
           (prn (type select))
-          (reset! path (Select/select (into-array select))))
+          (reset! path (Select/select (map-clause select))))
 
         (when select-all
-          (reset! path (Select/selectAll (into-array select-all))))
+          (reset! path (Select/selectAll (map-clause select-all))))
 
         (when select-distinct
-          (reset! path (Select/selectDistinct (into-array select-distinct))))
+          (reset! path (Select/selectDistinct (map-clause select-distinct))))
 
         (when from
-          (reset! path (.from @path (Expression/i (into-array [from])))))
+          (reset! path (.from @path (process-where-clause from))))
       
         (when use-index
           (reset! path (.useIndex @path (into-array use-index))))
