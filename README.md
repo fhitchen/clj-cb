@@ -1,9 +1,6 @@
 # clj-cb
 
-DISCONTINUED AT THE MOMENT
-If needed I can work on it again.
-
-A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0 with Couchbase Java client version 2.7.9. Simple N1QL query support has been added as well as basic N1QL prepared statement execution. Not all features are yet supported using the prepared statement DSL.
+A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0 with Couchbase Java client version 2.7.10. Simple N1QL query support has been added as well as basic N1QL prepared statement execution. Not all of the BNF-aware DSL are yet supported. The unsupported clauses are JOIN, NEST, UNNEST, LET, UNION, INTERSECT and EXCEPT.
 
 ## Usage
 
@@ -43,7 +40,7 @@ A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0
         \"name\": \"Aaron1\",
         \"uuid\": \"78edf902-7dd2-49a4-99b4-1c94ee286a33\"
         \"sponsors\": [\"Nike\" \"Reebok\" \"Freddies\"]
-        \"tues\": [{\"symptom\": {\"asthma\": \"Ventolin Inhler\"}}
+        \"tues\": [{\"symptom\": {\"asthma\": \"Ventolin Inhaler\"}}
                    {\"symptom\": {\"pain\": \"Asprin\"}}]  
         }")
         => {:id "Aaron1", :cas 1569768233881239552, :expiry 0, :mutation-token nil, :content {:name "Aaron1", :hitpoints 23832, :experience 248, :level 141, :loggedIn true, :tues [{:symptom {:asthma "Ventolin Inhler"}} {:symptom {:pain "Asprin"}}], :sponsors ["Nike" "Reebok" "Freddies"], :uuid "78edf902-7dd2-49a4-99b4-1c94ee286a33", :jsonType "player"}}
@@ -78,13 +75,13 @@ A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0
 
        => #object[com.couchbase.client.java.query.dsl.path.DefaultGroupByPath 0x2c738ab4 "SELECT foo FROM bucket WHERE foo = $val1 OR foo != $val2"]
 
-       ;; We execute a parameterized N1QL query. By default they are not ad hoc, assuming, as we have gone to the trouble
+       ;; We execute a parameterized N1QL query. By default queries are not ad hoc, assuming, as we have gone to the trouble
        ;; to prepare them, we want to use the client and server query optimizations. Almost all of the keywords map to
        ;; exactly what you would expect in the Couchbase DSL, :select, :select-distinct and so on. :i creates a
        ;; `backquoted` identifier as does the :as keyword, "`x` AS a". :s-as creates an unquoted identifer, "meta().id AS b".
        ;; Parameters that you want to replace are passed in a Clojure map {"key" "value"}. Keys have to be "Strings" not 
        ;; :keywords. 
-       ;; See the extensive tests for more details. 
+       ;; See the extensive tests for more exmples and details. 
 
         (prn (:rows (b/p-query (fx/bucket) {:select [{:s-as ["a" "meta().id"]} {:as ["b" "pages"]}]
                                             :from [{:i "earthen_test"}]
