@@ -135,6 +135,7 @@
    (.close bucket time (u/time type))))
 
 (declare expression)
+(declare statement)
 
 (defmulti expr (fn ([x & xs] 
                     (mapv class (into [x] xs)))))
@@ -144,6 +145,9 @@
 (defmethod expr [java.lang.String nil]
   [e _]
   (Expression/x e))
+(defmethod expr  [java.lang.String com.couchbase.client.java.query.dsl.Expression]
+  [e1 e2]
+  (.as e2 e1))
 (defmethod expr [clojure.lang.PersistentArrayMap]
   [e]
   (expression e))
@@ -155,19 +159,20 @@
   (expression e1 e2))
 
 (defn map-clause
+  "Process the Expression vector for the Select/select function."
   [v]
   (into-array
    (mapv (fn [e]
-           (prn e)
            (expr e)) v)))
 
 (defn ^Expression expression
   ([exp-1]
    (expression exp-1 nil))
-  ([{:keys [as asc and desc eq gt gte i is-null is-not-null le lt lte like ne or] :as all} ^Expression exp-2]
-         (println "Expresion got: " all)
+  ([{:keys [as asc and desc eq gt gte i is-null is-not-null le lt lte like ne or s-as sub] :as all} ^Expression exp-2]
    (cond
-     (some? as) (.as (Expression/i (into-array [(second as)])) (Expression/x (first as)))
+     (some? as) (if (nil? exp-2)
+                  (.as (Expression/i (into-array [(second as)])) (Expression/x (first as)))
+                  (.as exp-2 as))
      (some? asc) (Sort/asc (Expression/x asc))
      (some? desc) (Sort/desc (Expression/x desc))
      (some? and) (.and exp-2 (expression and))
@@ -183,9 +188,12 @@
      (some? lte) (.lte (Expression/x (first lte)) (Expression/x (second lte)))
      (some? like) (.like (Expression/x (first like)) (Expression/s (into-array (second like))))
      (some? ne) (.ne (Expression/x (first ne)) (Expression/x (second ne)))
+     (some? s-as) (.as (Expression/x (second s-as)) (first s-as))
+     (some? sub) (Expression/sub (statement sub))
      :else "Missing Condition")))
 
 (defn process-where-clause
+  "Chain Expression's from the Couchbase BNR DSL together."
   [where]
   (loop [var where
          exp nil]
@@ -206,7 +214,6 @@
       (let [path (atom nil)]
 
         (when select
-          (prn (type select))
           (reset! path (Select/select (map-clause select))))
 
         (when select-all
@@ -280,15 +287,13 @@
                                       (when n1ql-params
                                         n1ql-params))))))
 (defn p-query
-  "Execute parameterized N1ql query. "
-  ([bucket query-map p]
-   (p-query bucket query-map p nil))
-  ([bucket query-map p mode]
+  "Execute parameterized N1ql query. Defaults to ad-hoc mode false. Use utility function ad-hoc to set ad-hoc mode in the
+  optional 4th parameter. The query parameters are a map, but do not use keywords as the key. Only strings are supported."
+  ([bucket query-map query-params]
+   (p-query bucket query-map query-params nil))
+  ([bucket query-map query-params mode]
    (simple-query->map (.query bucket (N1qlQuery/parameterized (statement query-map)
-                                                              (JsonObject/from p)
+                                                              (JsonObject/from query-params)
                                                               (when (nil? mode)
                                                                 (.adhoc (N1qlParams/build) false)))))))
-
-;(Select/select (map-clause [{:i "x"} "y" {:as ["foo" "z"]} {:i "P"}]))
-
 

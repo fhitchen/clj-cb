@@ -143,7 +143,17 @@
          (.toString (b/statement {:select-distinct ["foo"]
                                   :from [{:i "bucket"}]
                                   :group-by ["foo" "bar"]
-                                  :order-by {:asc "meta().id"}})))))
+                                  :order-by {:asc "meta().id"}}))))
+  (is (= "SELECT DISTINCT foo FROM (SELECT foo, bar FROM bucket) AS t1 GROUP BY foo, bar ORDER BY meta().id ASC"
+         (.toString (b/statement {:select-distinct ["foo"]
+                                  :from [{:sub {:select ["foo" "bar"]
+                                                :from ["bucket"]}}
+                                         {:as "t1"}]
+                                  :group-by ["foo" "bar"]
+                                  :order-by {:asc "meta().id"}}))))
+  (is (= "SELECT meta().id AS a, `pages` AS b FROM `earthen_test`"
+         (.toString (b/statement {:select [{:s-as ["a" "meta().id"]} {:as ["b" "pages"]}]
+                                  :from [{:i "earthen_test"}]})))))
 
 (deftest p-query
   (fx/authenticate "earthen" "earthen")
@@ -157,44 +167,47 @@
           (range 10)))
     (Thread/sleep 2000)
     (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
-                                                 :from "earthen_test"
+                                                 :from [{:i "earthen_test"}]
                                                  :limit 1})))))
     (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
-                                                 :from "earthen_test"
+                                                 :from [{:i "earthen_test"}]
                                                  :limit 1}
                                     (b/ad-hoc))))))
     (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["pages"]
-                                                   :from "earthen_test"
+                                                   :from ["earthen_test"]
                                                    :where [{:eq ["name" "$title"]}]}
                                       {"title" "bigger-living-clojure"})))))
     (is (= 11 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
-                                                   :from "earthen_test"
+                                                   :from [{:i "earthen_test"}]
                                                    :where [{:like ["meta().id" ["bigger-%"]]}]}
                                       {"id" "bigger-living-clojure-0"})))))
     (is (= 1 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
-                                                   :from "earthen_test"
+                                                   :from [{:i "earthen_test"}]
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]}
                                       {"id" "bigger-living-clojure-8"})))))
     (is (= 2 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
-                                                   :from "earthen_test"
+                                                   :from [{:i "earthen_test"}]
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]
                                                    :order-by {:asc "meta().id"}}
                                       {"id" "bigger-living-clojure-7"})))))
     (is (= 2 (count (:rows (b/p-query (fx/bucket) {:select ["meta().id" "pages"]
-                                                   :from "earthen_test"
+                                                   :from [{:i "earthen_test"}]
                                                    :use-index ["#primary"]
                                                    :where [{:like ["meta().id" ["bigger-%"]]}
                                                            {:and {:gt ["meta().id" "$id"]}}]
                                                    :order-by {:desc "meta().id"}
                                                    :limit 2}
-                                      {"id" "bigger-living-clojure-7"})))))))
+                                      {"id" "bigger-living-clojure-7"})))))
+    (is (= [{:a "bigger-living-clojure-9", :b 12} {:a "bigger-living-clojure-8", :b 12}]
+           (:rows (b/p-query (fx/bucket) {:select [{:s-as ["a" "meta().id"]} {:as ["b" "pages"]}]
+                                          :from [{:i "earthen_test"}]
+                                          :use-index ["#primary"]
+                                          :where [{:like ["meta().id" ["bigger-%"]]}
+                                                  {:and {:gt ["meta().id" "$id"]}}]
+                                          :order-by {:desc "meta().id"}
+                                          :limit 2}
+                             {"id" "bigger-living-clojure-7"}))))))
 
-;"SELECT meta().id, productIds from `%s` USE INDEX (`#primary`)
-;                   WHERE meta().id LIKE 'ICustomerIndexDTO_%%' 
-;                   AND meta().id > '%s' ORDER BY meta().id LIMIT %d"
 
-(prn (.toString (into-array ["foo" "bar"])))
-
-(into-array (second ["meta().id" ["bigger-%"]]))
