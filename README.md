@@ -49,20 +49,20 @@ A Clojure java-client wrapper for Couchbase Server 4. Now updated to support 6.0
 
         => {:id "Aaron1", :cas 1569768233881239552, :expiry 0, :mutation-token nil, :content {:name "Aaron1", :hitpoints 23832, :experience 248, :level 141, :loggedIn true, :tues [{:symptom {:asthma "Ventolin Inhler"}} {:symptom {:pain "Asprin"}}], :sponsors ["Nike" "Reebok" "Freddies"], :uuid "78edf902-7dd2-49a4-99b4-1c94ee286a33", :jsonType "player"}}
 
-       ;; To lookup particular objects / values in a document, pass a list of paths. Vectors in
+       ;; To lookup particular objects / values in a document, pass a vector of paths. Vectors in
        ;; the response are converted from [n] to <n> as brackets are not valid in keywords.
        ;; The DocumentFragment used to execute the request also has an .exists method that returns
        ;; true or false for a given path. This has not been implemented. Instead you will get a
        ;; {:keyword nil} response for a noneixstent path.
 	  
-       (b/lookup-in bucket "Aaron1" "name" "sponsors" "tues[1]" "injuries")
+       (b/lookup-in bucket "Aaron1" ["name" "sponsors" "tues[1]" "injuries"])
 
        => {:name "Aaron1", :sponsors ["Nike" "Reebok" "Freddies"], :tues<1> {:symptom {:pain "Asprin"}}, :injuries nil}
 
        ;; We execute a simple N1QL query. Results are converted to a Clojure map and the JSON rows are returned as a 
        ;; Clojure vector
 
-       (prn (:rows (b/query bucket "SELECT meta().id FROM `earthen_test` LIMIT 3))
+       (prn (:rows (b/query bucket "SELECT meta().id FROM `earthen_test` LIMIT 3"))
 
        => [{:id bigger-living-clojure} {:id bigger-living-clojure-0} {:id bigger-living-clojure-1}
 

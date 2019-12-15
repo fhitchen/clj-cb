@@ -61,15 +61,15 @@
          (document->map doc))))))
 
 (defn lookup-in
-  "Retrieves sub-document values. To lookup particular objects / values in a document, pass a list of paths.
+  "Retrieves sub-document values. To lookup particular objects / values in a document, pass a vector of paths.
   Vectors in the response are converted from [n] to <n> as brackets are not valid in keywords. The
   DocumentFragment used to execute the request also has an .exists method that returns true or false for a
   given path. This has not been implemented. Instead you will get a {:keyword nil} response for a noneixstent path.
   If the document does not exist, an empty map {} is returned."
-  [bucket id & rest]
+  [bucket id [:as paths]]
   (try
     (let [builder (.lookupIn bucket id)
-          _ (.get builder (into-array rest))
+          _ (.get builder (into-array paths))
           result (.execute builder)]
       (apply merge-with into {}
              (map-indexed
@@ -77,7 +77,7 @@
                 {(keyword (clojure.string/replace item #"\[|\]" {"[" "<" "]" ">"}))
                  (if (contains? (supers (class (.content result index))) com.couchbase.client.java.document.json.JsonValue)
                    (read-json (.toString (.content result index)))
-                   (.content result index))}) rest)))
+                   (.content result index))}) paths)))
     (catch DocumentDoesNotExistException ex
       {})
     (catch PathMismatchException ex
