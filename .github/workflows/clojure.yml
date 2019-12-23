@@ -18,5 +18,5 @@ jobs:
      container:
        image: docker.io/fhitchen/clj-cb-test-db
        ports:
-         - 8091-8094
-	 - 11210
+         - 8091-8094:8091-8094
+         - 11210:11210
