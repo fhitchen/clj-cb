@@ -13,10 +13,10 @@ jobs:
         run: lein deps
       - name: Run tests
         run: lein test :only earthen.clj-cb.bucket-test/prepared-statement
-    container:
-      image: docker.io/fhitchen/clj-cb-testdb
-      ports:
-        - 8091-8094:8091-8094
-        - 11210:11210
-      options: --entrypoint /configure.sh
+#    container:
+#      image: docker.io/fhitchen/clj-cb-testdb
+#      ports:
+#        - 8091-8094:8091-8094
+#        - 11210:11210
+#      options: --entrypoint /configure.sh
 
