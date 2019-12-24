@@ -8,15 +8,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Install dependencies
-      run: lein deps
-    - name: Run tests
-      run: lein test :only earthen.clj-cb.bucket-test/prepared-statement
-
-  run_test_db:
-     container:
-       image: docker.io/fhitchen/clj-cb-test-db
-       ports:
-         - 8091-8094:8091-8094
-         - 11210:11210
+      - uses: actions/checkout@v1
+      - name: Install dependencies
+        run: lein deps
+      - name: Run tests
+        run: lein test :only earthen.clj-cb.bucket-test/prepared-statement
+    container:
+      image: docker.io/fhitchen/clj-cb-test-db
+      ports:
+        - 8091-8094:8091-8094
+        - 11210:11210
