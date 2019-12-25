@@ -10,8 +10,8 @@ jobs:
       couchbase:
         image: docker.io/fhitchen/clj-cb-testdb
         ports:
-          - 8091:8091
-          - 11210:112010
+          - 8091/tcp
+          - 11210/tcp
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
