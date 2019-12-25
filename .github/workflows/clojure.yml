@@ -10,7 +10,7 @@ jobs:
       couchbase:
         image: docker.io/fhitchen/clj-cb-testdb
         ports:
-          - 8091-8094:8091:8094
+          - 8091:8091
           - 11210:112010
     steps:
       - uses: actions/checkout@v1
