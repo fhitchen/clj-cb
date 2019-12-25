@@ -4,9 +4,14 @@ on: [push]
 
 jobs:
   build:
-
+    
     runs-on: ubuntu-latest
-
+    services:
+      couchbase:
+        image: docker.io/fhitchen/clj-cb-testdb
+        ports:
+          - 8091-8094:8091:8094
+          - 11210:112010
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
