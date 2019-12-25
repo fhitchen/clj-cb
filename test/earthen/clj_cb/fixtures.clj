@@ -34,9 +34,20 @@
   [username password]
   (c/authenticate @cluster username password))
 
+(defn- get-cluster-from-env
+  "Used in github action where port is defined in job.services.couchbase.ports['11210']"
+  []
+  (prn (System/getenv))
+  (let [port (System/getenv "job.services.couchbase.ports['11210']")]
+    (if (some? port)
+      (str "localhost:" port))))
+
 (defn init
   [f]
-  (reset! cluster (c/create))
+  (let [host (get-cluster-from-env)]
+    (if (some? host)
+      (reset! cluster (c/create host))
+      (reset! cluster (c/create))))
   (c/remove-bucket! (manager) bucket-name)
   (c/insert-bucket! (manager) default-bucket-settings)
   (f)

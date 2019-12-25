@@ -17,7 +17,8 @@ jobs:
       - name: Install dependencies
         run: lein deps
       - name: Run tests
-        run: lein test :only earthen.clj-cb.bucket-test/prepared-statement
+        run: lein test :only earthen.clj-cb.cluster-test
+#       run: lein test :only earthen.clj-cb.bucket-test/prepared-statement
 #    container:
 #      image: docker.io/fhitchen/clj-cb-testdb
 #      ports:
