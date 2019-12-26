@@ -14,12 +14,12 @@ jobs:
           - 8091/tcp
           - 11210/tcp
     steps:
-      env:
-        DB_PORT: ${{ job.services.couchbase.ports['8091'] }}
       - uses: actions/checkout@v1
       - name: Install dependencies
         run: lein deps
       - name: Run tests
+        env:
+          DB_PORT: ${{ job.services.couchbase.ports['8091'] }}
         run: lein test :only earthen.clj-cb.cluster-test
 #       run: lein test :only earthen.clj-cb.bucket-test/prepared-statement
 #    container:
