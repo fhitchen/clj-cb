@@ -3,6 +3,9 @@ name: Clojure CI
 on: [push]
 
 jobs:
+  env:
+    DB_PORT: ${{ job.services.couchbase.ports['8091'] }}
+ 
   build:
     
     runs-on: ubuntu-latest
@@ -12,8 +15,6 @@ jobs:
         ports:
           - 8091/tcp
           - 11210/tcp
-  env:
-    DB_PORT: ${{ job.services.couchbase.ports['8091'] }}
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
