@@ -38,13 +38,14 @@
   "Used in github action where port is defined in job.services.couchbase.ports['11210']"
   []
   (prn (System/getenv))
-  (let [port (System/getenv "job.services.couchbase.ports['11210']")]
+  (let [port (System/getenv "DB_PORT")]
     (if (some? port)
       (str "localhost:" port))))
 
 (defn init
   [f]
   (let [host (get-cluster-from-env)]
+    (prn "HOSTNAME is: " host)
     (if (some? host)
       (reset! cluster (c/create host))
       (reset! cluster (c/create))))
