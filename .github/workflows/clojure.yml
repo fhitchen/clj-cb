@@ -9,12 +9,11 @@ jobs:
     services:
       couchbase:
         image: docker.io/fhitchen/clj-cb-testdb
-#        ports:
-#          - 8091/tcp
-#          - 11210/tcp
-        options: --net host
-#    env:
-#      DB_PORT: ${{ job.services.couchbase.ports['8091'] }}
+        ports:
+          - 8091/tcp
+          - 11210/tcp
+  env:
+    DB_PORT: ${{ job.services.couchbase.ports['8091'] }}
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
