@@ -51,7 +51,7 @@
     (is (= {:exists nil} (b/lookup-in (fx/bucket) (:name bigger-book) ["exists"])))
     (is (= {:exception "Path mismatch \"year.missing\" in bigger-living-clojure"} (b/lookup-in (fx/bucket) (:name bigger-book) ["year.missing"])))))
 
-(deftest query
+(deftest ^:query query
   (fx/authenticate "earthen" "earthen")
   (b/create-primary-index (fx/bucket))
   (dorun
@@ -166,7 +166,7 @@
            (.toString (b/statement {:select [{:s-as ["a" "meta().id"]} {:as ["b" "pages"]}]
                                     :from [{:i "earthen_test"}]}))))))
 
-(deftest p-query
+(deftest ^:query p-query
   (fx/authenticate "earthen" "earthen")
   (b/create-primary-index (fx/bucket))
   (let [item (b/replace! (fx/bucket) (:name bigger-book) bigger-book)]

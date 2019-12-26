@@ -37,10 +37,17 @@
 (defn- get-cluster-from-env
   "Used in github action where port is defined in job.services.couchbase.ports['11210']"
   []
-  (prn (System/getenv))
-  (let [port (System/getenv "DB_PORT")]
-    (if (some? port)
-      (str "localhost:" port))))
+  (let [http-port (System/getenv "HTTP_DIRECT_PORT")
+        carrier-port (System/getenv "CARRIER_DIRECT_PORT")]
+    (if (some? http-port)
+      (do
+        (println "Setting " http-port carrier-port)
+        (System/setProperty "com.couchbase.NetworkResolution" "external")
+        (System/setProperty "com.couchbase.bootstrapHttpEnabled" "true")
+        (System/setProperty "com.couchbase.bootstrapHttpDirectPort" http-port)
+        (System/setProperty "com.couchbase.bootstrapCarrierDirectPort" carrier-port)
+        "couchbase"))))
+
 
 (defn init
   [f]
