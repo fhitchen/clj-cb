@@ -46,7 +46,8 @@
         (System/setProperty "com.couchbase.bootstrapHttpEnabled" "true")
         (System/setProperty "com.couchbase.bootstrapHttpDirectPort" http-port)
         (System/setProperty "com.couchbase.bootstrapCarrierDirectPort" carrier-port)
-        "127.0.0.1"))))
+        "127.0.0.1")
+      "127.0.0.1")))
 
 
 (defn init
