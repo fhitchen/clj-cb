@@ -13,6 +13,7 @@ jobs:
         ports:
           - 8091/tcp
           - 11210/tcp
+          - 8093:8093
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
