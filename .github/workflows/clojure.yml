@@ -11,16 +11,21 @@ jobs:
       couchbase:
         image: docker.io/fhitchen/clj-cb-testdb
         ports:
-          - 8091/tcp
-          - 11210/tcp
+          - 8091:8091
+          - 8092:8092
           - 8093:8093
+          - 8094:8094
+          - 8095:8095
+          - 8096:8096
+          - 11210:11210
+          - 11211:11211
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
         run: lein deps
       - name: Run tests
         env:
-          HTTP_DIRECT_PORT: ${{ job.services.couchbase.ports['8091'] }}
-          CARRIER_DIRECT_PORT: ${{ job.services.couchbase.ports['11210'] }}
+          XHTTP_DIRECT_PORT: ${{ job.services.couchbase.ports['8091'] }}
+          XCARRIER_DIRECT_PORT: ${{ job.services.couchbase.ports['11210'] }}
         run: lein test :all
 
