@@ -39,6 +39,7 @@
   []
   (let [http-port (System/getenv "HTTP_DIRECT_PORT")
         carrier-port (System/getenv "CARRIER_DIRECT_PORT")]
+    (System/setProperty "com.couchbase.disconnectTimeout" "60000")
     (if (some? http-port)
       (do
         (println "Setting " http-port carrier-port)
