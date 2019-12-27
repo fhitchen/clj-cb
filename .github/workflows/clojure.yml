@@ -22,5 +22,5 @@ jobs:
         env:
           HTTP_DIRECT_PORT: ${{ job.services.couchbase.ports['8091'] }}
           CARRIER_DIRECT_PORT: ${{ job.services.couchbase.ports['11210'] }}
-        run: lein test
+        run: lein test :all
 
