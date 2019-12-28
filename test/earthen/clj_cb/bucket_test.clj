@@ -60,7 +60,7 @@
           (str (:name bigger-book) "-" %)
           (assoc bigger-book :name (str (:name bigger-book) "-" %)))
         (range 10)))
-  (Thread/sleep 1000)
+  (Thread/sleep 5000)
   (is (= 10 (count (:rows (b/query (fx/bucket) "SELECT meta().id, editions FROM `earthen_test`")))))
   (is (= 0 (count (:rows (b/query (fx/bucket) "SELECT * FROM `earthen_test` where name = \"not found\"")))))
   (is (= 1 (count (:rows (b/query (fx/bucket) "SELECT * FROM `earthen_test` where name = \"bigger-living-clojure-9\"")))))
@@ -176,7 +176,7 @@
             (str (:name bigger-book) "-" %)
             (assoc bigger-book :name (str (:name bigger-book) "-" %)))
           (range 10)))
-    (Thread/sleep 2000)
+    (Thread/sleep 5000)
     (testing "Basic select an limit and not ad-hoc"
       (is (= 1 (count (:rows (b/query (fx/bucket) {:select ["*"]
                                                    :from [{:i "earthen_test"}]
