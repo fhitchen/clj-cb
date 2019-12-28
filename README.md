@@ -1,6 +1,6 @@
 # clj-cb
 
-!{}(https://github.com/fhitchen/clj-cb/workflows/Clojure%20CI/badge.svg)
+![]://github.com/fhitchen/clj-cb/workflows/Clojure%20CI/badge.svg)
 
 ![](https://github.com/fhitchen/clj-cb/workflows/.github/workflows/clojure.yml/badge.svg)
 
